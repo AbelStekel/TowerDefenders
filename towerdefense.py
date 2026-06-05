@@ -39,6 +39,10 @@ fps = pygame.time.Clock()
 # > kills give money
 # > upgrade towers? -> TBD. focus elsewhere first
 
+sword_icon =  pygame.image.load('swrd.png')
+bowandarrow_icon = pygame.image.load('bowandarrow.png')
+magic_icon = pygame.image.load('magicplaceholder.png')
+
 def game():
 	#start with full hp and some $$$
 	hp = 100
@@ -46,8 +50,8 @@ def game():
 	#track kills and wether wave is coming in or not
 	kill_amount = 0
 	wave_number = 0
+	wave_completed = True
 	gameplay = False
-	# level_number = 0
 
 	#this is used to give towers and enemies unique identifiers
 	#helps figure out if theyre dead or not i guess
@@ -82,45 +86,66 @@ def game():
 	while(hp > 0):
 		#get inputs
 		for event in pygame.event.get():
+			#allow closing window
 			if event.type == pygame.QUIT:  
 				pygame.quit()
 				quit()
+			#handle keypress
 			if event.type == pygame.KEYDOWN:
+				#spacebar
 				if event.key == pygame.K_SPACE:
 					if gameplay == False:
 						gameplay = True
-						new_path = generate_path()
-						path_this_wave = new_path[0]
-						path_id = new_path[1]
-						wave_number += 1
-						enemies_left = int(get_waveinfo(wave_number)[0]) + int(get_waveinfo(wave_number)[1]) + int(get_waveinfo(wave_number)[2])
-			# if event.type == pygame.MOUSEBUTTONDOWN:
-			# 	#track position[x][y]
-			# 	position = pygame.mouse.get_pos()
-			# 	#left mouse button
-			# 	if event.button == 1:
-			# 		#press play button
-			# 		if > position[0] >  and > position[1] > :
-			# 			if gameplay == False:
-			# 				gameplay = True
-			# 		#this checks to see if the tower exists at the location
-			# 		elif find_tower_by_coordinate(position) >= 0:
-			# 			clicked_tower_id  = find_tower_by_coordinate(position)
-			# 			#loop thru towers
-			# 			for tower in tower_list:
-			# 				#if ids match, do stuff
-			# 				if clicked_tower_id == tower[6]:
-			# 					display_tower = find_towerinfo_by_id(tower[6])
-			# 					#do uistuff(display_tower)
+						if wave_completed == True:
+							new_path = generate_path()
+							path_this_wave = new_path[0]
+							path_id = new_path[1]
+							wave_number += 1
+							enemies_left = int(get_waveinfo(wave_number)[0]) + int(get_waveinfo(wave_number)[1]) + int(get_waveinfo(wave_number)[2])
+					elif gameplay == True:
+						gameplay = False
+			#handle mouse input
+			if event.type == pygame.MOUSEBUTTONDOWN:
+				#track position[x][y]
+				position = pygame.mouse.get_pos()
+				#left mouse button
+				if event.button == 1:
+					#press play/pause button
+					if window_x - 170 < position[0] < window_x - 55  and window_y - 165 < position[1] < window_y - 35:
+						if gameplay == False:
+							gameplay = True
+							if wave_completed == True:
+								new_path = generate_path()
+								path_this_wave = new_path[0]
+								path_id = new_path[1]
+								wave_number += 1
+								enemies_left = int(get_waveinfo(wave_number)[0]) + int(get_waveinfo(wave_number)[1]) + int(get_waveinfo(wave_number)[2])
+						elif gameplay == True:
+							gameplay = False
+					# if a < position[0] < b and c < position[1] < d:
+						#if current_money > ValueOf(sword_tower):
+							#prepare nextclick to set down a tower?
+
+					# #this checks to see if the tower exists at the location
+					# elif find_tower_by_coordinate(position) >= 0:
+					# 	clicked_tower_id  = find_tower_by_coordinate(position)
+					# 	#loop thru towers
+					# 	for tower in tower_list:
+					# 		#if ids match, do stuff
+					# 		if clicked_tower_id == tower[6]:
+					# 			display_tower = find_towerinfo_by_id(tower[6])
+					# 			#do uistuff(display_tower)
 
 		#refresh screen
 		game_window.fill(green)
+		draw_ui(gameplay, hp, current_money)
+		draw_path(path_id)
 
 		#you pressed play. make stuff happen
 		if gameplay == True:
-			draw_path(path_id)
 			#spawn an enemy per loop
 			while enemies_left > 0:
+				wave_completed = False
 				return_value = create_enemy(entity_counter, wave_number, enemy_list, path_this_wave)
 				enemy_list = return_value[0]
 				entity_counter += return_value[1]
@@ -128,6 +153,7 @@ def game():
 
 			#you won the wave, do these things
 			if len(enemy_list) == 0:
+				wave_completed = True
 				gameplay = False
 				current_money = current_money + wave_number * 150
 			else:
@@ -154,7 +180,7 @@ def game():
 
 					#if no hp, enemy dies
 					if enemy[1] < 1:
-						money += enemy[2]
+						current_money += enemy[2]
 						kill_amount += 1
 						enemy_list.remove(enemy)
 
@@ -203,7 +229,7 @@ def game():
 		def debug(enemy_list):
 			offset = 0
 			for enemy in enemy_list:
-				debug1_text = smallfont.render(str(enemy[4]), True, red) 
+				debug1_text = smallfont.render(str(enemy[4]) + ", " + str(enemy[5]), True, red) 
 				debug1_surface = debug1_text.get_rect()
 				debug1_surface.midtop = (200 + offset, 0 + offset)
 				game_window.blit(debug1_text, debug1_surface)
@@ -215,18 +241,6 @@ def game():
 
 		if len(tower_list) > 0:
 			draw_towers(tower_list)
-
-		#draw hp
-		hp_text = smallfont.render("Remaining Health: " + str(hp) + " hp.", True, red)
-		hp_surface = hp_text.get_rect()
-		hp_surface.midtop = (window_x - 100, 25)
-		game_window.blit(hp_text, hp_surface)
-
-		#draw money
-		money_text = smallfont.render("$$$: " + str(current_money), True, red)
-		money_surface = money_text.get_rect()
-		money_surface.midtop = (window_x - 100, 50)
-		game_window.blit(money_text, money_surface)
 
 		fps.tick(60)
 		pygame.display.flip()
@@ -249,12 +263,72 @@ def draw_enemies(enemy_list):
 		elif enemy[0] == "big":
 			pygame.draw.rect(game_window, red, pygame.Rect(int(enemy[4]) - 5, int(enemy[5]) - 5, 10, 10))
 
-# #helper function to draw play button, tower selection, money, wave number, kill count etc
-# def draw_ui(money, kills, wave_number, gameplay):
-# 	if gameplay == True:
-# 		#draw play button
-# 	else:
-# 		#draw pause button
+#helper function to draw play button, tower selection, money, wave number, kill count etc
+def draw_ui(gameplay, hp, current_money):
+	#draw hp
+	hp_text = smallfont.render("Remaining Health: " + str(hp) + " hp.", True, red)
+	hp_surface = hp_text.get_rect()
+	hp_surface.midtop = (window_x - 100, 25)
+	game_window.blit(hp_text, hp_surface)
+
+	#draw money
+	money_text = smallfont.render("$$$: " + str(current_money), True, red)
+	money_surface = money_text.get_rect()
+	money_surface.midtop = (window_x - 100, 50)
+	game_window.blit(money_text, money_surface)
+
+	#draw cutoff point gameplay area / shop
+	pygame.draw.rect(game_window, grey, pygame.Rect(0, 800, window_x, 200))
+
+	#draw shop text
+	shop_text = smallfont.render("Welcome to the shop!", True, red)
+	shop_surface = shop_text.get_rect()
+	shop_surface.midtop = (123, 810)
+	game_window.blit(shop_text, shop_surface)
+
+	#SWORD TOWER UI
+	#draw outline per shop button
+	pygame.draw.rect(game_window, white, pygame.Rect(40, window_y - 165, 200, 135))
+	#draw icons for the shop
+	game_window.blit(sword_icon, (90, window_y - 150))
+	#draw tower cost
+	swordcost_text = smallfont.render("67$ (xd)", True, red)
+	swordcost_surface = swordcost_text.get_rect()
+	swordcost_surface.midtop = (180, 850)
+	game_window.blit(swordcost_text, swordcost_surface)
+
+	#BOW AND ARROW TOWER UI
+	#draw outline per shop button
+	pygame.draw.rect(game_window, white, pygame.Rect(280, window_y - 165, 200, 135))
+	#draw icons for the shop
+	game_window.blit(bowandarrow_icon, (325, window_y - 135))
+	#draw tower cost
+	bowandarrow_cost_text = smallfont.render("420$ (roflmao XD)", True, red)
+	bowandarrow_cost_surface = bowandarrow_cost_text.get_rect()
+	bowandarrow_cost_surface.midtop = (375, 850)
+	game_window.blit(bowandarrow_cost_text, bowandarrow_cost_surface)
+
+	#MAGIC TOWER UI
+	#draw outline per shop button
+	pygame.draw.rect(game_window, white, pygame.Rect(520, window_y - 165, 200, 135))
+	#draw icons for the shop
+	game_window.blit(magic_icon, (570, window_y - 135))
+	#draw tower cost
+	magic_cost_text = smallfont.render("1337$ (epic)", True, red)
+	magic_cost_surface = magic_cost_text.get_rect()
+	magic_cost_surface.midtop = (620, 850)
+	game_window.blit(magic_cost_text, magic_cost_surface)
+
+	#draw bounding box for button
+	pygame.draw.rect(game_window, white, pygame.Rect(window_x - 175, window_y - 165, 125, 135))
+	if gameplay == False:
+		#draws play button
+		pygame.draw.polygon(game_window, red, [[window_x - 75, window_y - 100], [window_x - 150, window_y - 50], [window_x - 150, window_y - 100]])
+		pygame.draw.polygon(game_window, red, [[window_x - 75, window_y - 100], [window_x - 150, window_y - 150], [window_x - 150, window_y - 100]])
+	elif gameplay == True:
+		#draws pause button
+		pygame.draw.rect(game_window, red, pygame.Rect(window_x - 150, window_y - 150, 30, 100))
+		pygame.draw.rect(game_window, red, pygame.Rect(window_x - 105, window_y - 150, 30, 100))
 
 #this function helps spawn enemies
 #by checking the wave info
@@ -263,22 +337,29 @@ def create_enemy(entity_counter, wave_number, enemy_list, path_this_wave):
 	enemy_data = get_waveinfo(wave_number)
 	int ;spawned_count = 0
 
+	start_moment = pygame.time.get_ticks()
+	timer_offset = 0
+
 	while enemy_data[0] > 0 or enemy_data[1] > 0 or enemy_data[2] > 0:
-		if enemy_data[0] > 0:
-			smallenemy = ["small", 15, 5, 3, 0, 0, entity_counter, path_this_wave, path_this_wave[0][1]]
-			enemy_list.append(smallenemy)
-			spawned_count += 1
-			enemy_data[0] -= 1
-		if enemy_data[1] > 0:
-			mediumenemy = ["medium", 30, 15, 2, 0, 0, entity_counter, path_this_wave, path_this_wave[0][1]]
-			enemy_list.append(mediumenemy)
-			spawned_count += 1
-			enemy_data[1] -= 1
-		if enemy_data[2] > 0:
-			bigenemy = ["big", 200, 55, 1, 0, 0, entity_counter, path_this_wave, path_this_wave[0][1]]
-			enemy_list.append(bigenemy)
-			spawned_count += 1
-			enemy_data[2] -= 1
+		if pygame.time.get_ticks() >= start_moment + timer_offset * 500:
+			if enemy_data[0] > 0:
+				smallenemy = ["small", 15, 5, 3, 0, 0, entity_counter, path_this_wave, path_this_wave[0][1]]
+				enemy_list.append(smallenemy)
+				spawned_count += 1
+				enemy_data[0] -= 1
+				timer_offset += 1
+			if enemy_data[1] > 0:
+				mediumenemy = ["medium", 30, 15, 2, 0, 0, entity_counter, path_this_wave, path_this_wave[0][1]]
+				enemy_list.append(mediumenemy)
+				spawned_count += 1
+				enemy_data[1] -= 1
+				timer_offset += 1
+			if enemy_data[2] > 0:
+				bigenemy = ["big", 200, 55, 1, 0, 0, entity_counter, path_this_wave, path_this_wave[0][1]]
+				enemy_list.append(bigenemy)
+				spawned_count += 1
+				enemy_data[2] -= 1
+				timer_offset += 1
 
 	return_value = (enemy_list, spawned_count)
 	return return_value
@@ -391,7 +472,7 @@ def draw_path(path_id):
 
 #end game
 def game_over(wave_number, kill_amount):
-	#show some text about the game
+	#show some text with info about the game
 	#"u made it to wave x. you got y kills"
 	gameover_text = smallfont.render("You made it to wave: " + str(wave_number) + " while getting " + str(kill_amount) + " frags.", True, red)
 	gameover_surface = gameover_text.get_rect()
