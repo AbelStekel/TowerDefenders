@@ -14,9 +14,11 @@ green = pygame.Color(0, 255, 0)
 blue = pygame.Color(0, 0, 255)
 red = pygame.Color(255, 0, 0)
 
+beige = pygame.Color(242, 235, 226)
 yellow = pygame.Color(255, 255, 0)
 orange = pygame.Color(165, 165, 0)
 purple = pygame.Color(128, 0, 128)
+
 #enemy path
 brown = pygame.Color(200, 150, 25)
 
@@ -74,6 +76,7 @@ def game():
 	enemy_template = ["name", "hp", "reward", "speed", "x_pos", "y_pos", "entity_id", "current_path", "last_checkpoint"]
 
 	path_this_wave = [("checkpoint index (where length = 1 -> index 1)", "direction", "checkpoint x_pos", "checkpoint y_pos"), ]
+	clicked_shop = False
 
 	#these lists hold towers or enemies
 	tower_list = []
@@ -110,6 +113,29 @@ def game():
 				position = pygame.mouse.get_pos()
 				#left mouse button
 				if event.button == 1:
+					#the first leftclick after clicking on shop item will place the tower
+					if clicked_shop == True and gameplay == True:
+						#building is only possible in the playing field, if u have enough money and if the space isn't occupied already
+						if 0 < position[0] < window_x and 0 < position[1] < 800 and current_money > int(shop_last_clicked_tower[1]) and can_i_build_here(position[0], position[1]) == True:
+							current_money -= int(shop_last_clicked_tower[1])
+							shop_last_clicked_tower[4] = position[0]
+							shop_last_clicked_tower[5] = position[1]
+							entity_counter += 1
+							shop_last_clicked_tower[7] = entity_counter
+							tower_list.append(shop_last_clicked_tower)
+						clicked_shop = False
+
+					#clicking sword creates a tower to be placed with next click
+					if 40 < position[0] < 240 and window_y - 165 < position[1] < window_y - 30 :
+						shop_last_clicked_tower = ["sword", "67", "23", "5", "x", "y", "ent", "0"]
+						clicked_shop = True
+					# #clicking bowandarrow creates a tower to be placed with next click
+					# if < position[0] <  and < position[1] < :
+					# 	clicked_shop = True
+					# #clicking mage creates a tower to be placed with next click
+					# if < position[0] <  and < position[1] < :
+					# 	clicked_shop = True
+
 					#press play/pause button
 					if window_x - 170 < position[0] < window_x - 55  and window_y - 165 < position[1] < window_y - 35:
 						if gameplay == False:
@@ -122,9 +148,6 @@ def game():
 								enemies_left = int(get_waveinfo(wave_number)[0]) + int(get_waveinfo(wave_number)[1]) + int(get_waveinfo(wave_number)[2])
 						elif gameplay == True:
 							gameplay = False
-					# if a < position[0] < b and c < position[1] < d:
-						#if current_money > ValueOf(sword_tower):
-							#prepare nextclick to set down a tower?
 
 					# #this checks to see if the tower exists at the location
 					# elif find_tower_by_coordinate(position) >= 0:
@@ -174,9 +197,9 @@ def game():
 					#check list of towers and enemies
 					for tower in tower_list:
 						#check if any enemy in range of any tower
-						if (tower[4] - tower[2] < enemy[4] < tower[4] + tower[2]) and (tower[5] - tower[2] < enemy[5] < tower[5] + tower[2]):
+						if (tower[4] - int(tower[2]) < enemy[4] < tower[4] + int(tower[2])) and (tower[5] - int(tower[2]) < enemy[5] < tower[5] + int(tower[2])):
 							#subtract damage from hp
-							enemy[1] -= tower[3]
+							enemy[1] -= int(tower[3])
 
 					#if no hp, enemy dies
 					if enemy[1] < 1:
@@ -251,7 +274,12 @@ def game():
 #helper function fetches currently active towers
 def draw_towers(tower_list):
 	for tower in tower_list:
-		pygame.draw.rect(game_window, yellow, pygame.Rect(int(tower[4]) - 5, int(tower[5]) - 5, 10, 10))
+		if tower[0] == "sword":
+			pygame.draw.rect(game_window, yellow, pygame.Rect(int(tower[4]) - 5, int(tower[5]) - 5, 10, 10))
+		elif tower[0] == "bowandarrow":
+			pygame.draw.rect(game_window, beige, pygame.Rect(int(tower[4]) - 5, int(tower[5]) - 5, 10, 10))
+		elif tower[0] == "mage":
+			pygame.draw.rect(game_window, purple, pygame.Rect(int(tower[4]) - 5, int(tower[5]) - 5, 10, 10))
 
 #function fetches list of currently active enemies to draw them
 def draw_enemies(enemy_list):
@@ -259,9 +287,17 @@ def draw_enemies(enemy_list):
 		if enemy[0] == "small":
 			pygame.draw.rect(game_window, blue, pygame.Rect(int(enemy[4]) - 2, int(enemy[5]) - 2, 4, 4))
 		elif enemy[0] == "medium":
-			pygame.draw.rect(game_window, purple, pygame.Rect(int(enemy[4]) - 3, int(enemy[5]) - 3, 6, 6))			
+			pygame.draw.rect(game_window, orange, pygame.Rect(int(enemy[4]) - 3, int(enemy[5]) - 3, 6, 6))			
 		elif enemy[0] == "big":
 			pygame.draw.rect(game_window, red, pygame.Rect(int(enemy[4]) - 5, int(enemy[5]) - 5, 10, 10))
+
+#check if a position is valid for tower development
+def can_i_build_here(position_x, position_y):
+	color = game_window.get_at((position_x, position_y))
+	if color != red and color != brown and color != blue and color != orange and color != yellow and color != beige and color != purple:
+		return True
+	else:
+		return False
 
 #helper function to draw play button, tower selection, money, wave number, kill count etc
 def draw_ui(gameplay, hp, current_money):
